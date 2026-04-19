@@ -1,1 +1,2 @@
 Étudiant: hassam | Moyenne: 15.67/20
+Etudiant: hassan | Moyenne: 15.00/20 | Notes: [12.0, 13.0, 17.0, 18.0]
