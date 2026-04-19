@@ -1,80 +1,107 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 
-class GestionNotesBTS:
+class GestionBTSPro:
     def __init__(self, root):
         self.root = root
-        self.root.title("Système de Gestion des Notes - BTS")
-        self.root.geometry("450x450")
-        self.root.configure(bg="#f0f0f0")
+        self.root.title("Système de Gestion BTS - Version Pro")
+        self.root.geometry("500x600")
+        self.root.configure(bg="#ecf0f1")
         
-        self.notes = []
+        self.data_notes = [] 
 
-        # --- Interface Graphique (GUI) ---
-        
-        # Titre
-        self.lbl_title = tk.Label(root, text="Gestion des Notes Etudiants", font=("Arial", 16, "bold"), bg="#f0f0f0")
-        self.lbl_title.pack(pady=20)
+        # --- Style & UI ---
+        title = tk.Label(root, text="Gestionnaire de Notes BTS", font=("Helvetica", 18, "bold"), bg="#2c3e50", fg="white", pady=10)
+        title.pack(fill=tk.X)
 
         # Zone Nom
-        tk.Label(root, text="Nom de l'étudiant :", bg="#f0f0f0", font=("Arial", 10)).pack(pady=2)
-        self.entry_nom = tk.Entry(root, font=("Arial", 12), width=30)
-        self.entry_nom.pack(pady=5)
-
-        # Zone Note
-        tk.Label(root, text="Entrez une note (0-20) :", bg="#f0f0f0", font=("Arial", 10)).pack(pady=2)
-        self.entry_note = tk.Entry(root, font=("Arial", 12), width=10)
-        self.entry_note.pack(pady=5)
-
-        # Bouton Ajouter
-        self.btn_ajouter = tk.Button(root, text="Ajouter Note", command=self.ajouter_note, bg="#3498db", fg="white", font=("Arial", 10, "bold"), width=15)
-        self.btn_ajouter.pack(pady=10)
+        frame_top = tk.Frame(root, bg="#ecf0f1")
+        frame_top.pack(pady=10)
         
-        # Liste des notes affichées
-        self.lbl_notes_liste = tk.Label(root, text="Notes saisies : []", bg="#f0f0f0", fg="#555")
-        self.lbl_notes_liste.pack(pady=5)
+        tk.Label(frame_top, text="Nom de l'étudiant:", bg="#ecf0f1").grid(row=0, column=0, padx=5)
+        self.entry_nom = tk.Entry(frame_top, font=("Arial", 11))
+        self.entry_nom.grid(row=0, column=1, padx=5)
 
-        # Bouton Calculer et Sauvegarder
-        self.btn_save = tk.Button(root, text="Calculer Moyenne & Enregistrer", command=self.calculer_et_sauvegarder, bg="#2ecc71", fg="white", font=("Arial", 10, "bold"))
-        self.btn_save.pack(pady=20)
+        # Zone Saisie Note et Coeff
+        frame_input = tk.LabelFrame(root, text=" Saisie des Notes ", bg="#ecf0f1", padx=10, pady=10)
+        frame_input.pack(pady=10, padx=20, fill=tk.X)
 
-    def ajouter_note(self):
+        tk.Label(frame_input, text="Note (0-20):", bg="#ecf0f1").grid(row=0, column=0)
+        self.entry_note = tk.Entry(frame_input, width=8)
+        self.entry_note.grid(row=0, column=1, padx=5)
+
+        tk.Label(frame_input, text="Coefficient:", bg="#ecf0f1").grid(row=0, column=2)
+        self.entry_coeff = tk.Entry(frame_input, width=8)
+        self.entry_coeff.insert(0, "1")
+        self.entry_coeff.grid(row=0, column=3, padx=5)
+
+        tk.Button(frame_input, text="Ajouter à la liste", command=self.ajouter_ligne, bg="#3498db", fg="white").grid(row=1, columnspan=4, pady=10)
+
+        # Tableau (Treeview)
+        self.tree = ttk.Treeview(root, columns=("Note", "Coeff"), show='headings', height=6)
+        self.tree.heading("Note", text="Note / 20")
+        self.tree.heading("Coeff", text="Coefficient")
+        self.tree.pack(pady=10, padx=20, fill=tk.X)
+
+        # Boutons d'action
+        btn_frame = tk.Frame(root, bg="#ecf0f1")
+        btn_frame.pack(pady=10)
+
+        tk.Button(btn_frame, text="Calculer & Sauvegarder", command=self.finaliser, bg="#27ae60", fg="white", font=("Arial", 10, "bold"), padx=10).pack(side=tk.LEFT, padx=5)
+        tk.Button(btn_frame, text="Réinitialiser", command=self.reset, bg="#e74c3c", fg="white", padx=10).pack(side=tk.LEFT, padx=5)
+
+    def ajouter_ligne(self):
         try:
-            valeur = self.entry_note.get()
-            note = float(valeur)
-            if 0 <= note <= 20:
-                self.notes.append(note)
-                self.lbl_notes_liste.config(text=f"Notes saisies : {self.notes}")
+            n = float(self.entry_note.get())
+            c = float(self.entry_coeff.get())
+            if 0 <= n <= 20 and c > 0:
+                self.data_notes.append((n, c))
+                self.tree.insert("", tk.END, values=(f"{n}/20", c))
                 self.entry_note.delete(0, tk.END)
             else:
-                messagebox.showwarning("Erreur", "La note doit être comprise entre 0 et 20")
+                messagebox.showwarning("Erreur", "Note entre 0-20 et Coeff > 0")
         except ValueError:
-            messagebox.showerror("Erreur", "Veuillez entrer un nombre valide (ex: 15.5)")
+            messagebox.showerror("Erreur", "Veuillez entrer des chiffres valides")
 
-    def calculer_et_sauvegarder(self):
+    def get_mention(self, moy):
+        if moy >= 16: return "Très Bien"
+        elif moy >= 14: return "Bien"
+        elif moy >= 12: return "Assez Bien"
+        elif moy >= 10: return "Passable"
+        else: return "Ajourné"
+
+    def finaliser(self):
         nom = self.entry_nom.get()
-        if not nom or not self.notes:
-            messagebox.showwarning("Attention", "Veuillez remplir le nom et ajouter au moins une note")
+        if not nom or not self.data_notes:
+            messagebox.showwarning("Attention", "Nom ou notes manquants")
             return
+
+        total_points = sum(n * c for n, c in self.data_notes)
+        total_coeffs = sum(c for n, c in self.data_notes)
+        moyenne = total_points / total_coeffs
         
-        moyenne = sum(self.notes) / len(self.notes)
+        mention = self.get_mention(moyenne)
+        statut = "ADMIS" if moyenne >= 10 else "AJOURNÉ"
+
+        resultat_txt = f"Résultat: {statut}\nMoyenne: {moyenne:.2f}/20\nMention: {mention}"
         
-        # Sauvegarde dans le fichier texte
-        try:
-            with open("notes_bts.txt", "a", encoding="utf-8") as f:
-                f.write(f"Etudiant: {nom} | Moyenne: {moyenne:.2f}/20 | Notes: {self.notes}\n")
-            
-            messagebox.showinfo("Succès", f"Résultat pour {nom}\nMoyenne: {moyenne:.2f}/20\nDonnées enregistrées !")
-            
-            # Réinitialisation (Reset)
-            self.notes = []
-            self.lbl_notes_liste.config(text="Notes saisies : []")
-            self.entry_nom.delete(0, tk.END)
-            
-        except Exception as e:
-            messagebox.showerror("Erreur Fichier", f"Impossible d'enregistrer : {e}")
+        with open("notes_bts_complet.txt", "a", encoding="utf-8") as f:
+            f.write(f"Etudiant: {nom} | Moyenne: {moyenne:.2f} | Statut: {statut} | Mention: {mention}\n")
+        
+        messagebox.showinfo(f"Bilan de {nom}", resultat_txt)
+        self.reset()
+
+    def reset(self):
+        self.data_notes = []
+        for item in self.tree.get_children():
+            self.tree.delete(item)
+        self.entry_nom.delete(0, tk.END)
+        self.entry_note.delete(0, tk.END)
+        self.entry_coeff.delete(0, tk.END)
+        self.entry_coeff.insert(0, "1")
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = GestionNotesBTS(root)
+    app = GestionBTSPro(root)
     root.mainloop()
+      
